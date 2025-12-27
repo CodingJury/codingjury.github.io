@@ -1,0 +1,70 @@
+# Name of the workflow (shown in GitHub Actions UI)
+name: Deploy to GitHub Pages
+
+# Trigger workflow on push to main branch
+on:
+  push:
+    branches:
+      - main
+
+# Required permissions for GitHub Pages deployment
+permissions:
+  contents: read      # Read repository code
+  pages: write        # Publish to GitHub Pages
+  id-token: write     # Authentication for Pages
+
+# Prevent multiple deployments running at the same time
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  # --------------------
+  # Build job
+  # --------------------
+  build:
+    runs-on: ubuntu-latest  # Use GitHub-hosted Ubuntu VM
+
+    steps:
+      # Checkout repository code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Setup Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20    # Node.js version
+          cache: npm          # Cache npm dependencies
+
+      # Install project dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # Build the React application
+      - name: Build project
+        run: npm run build
+
+      # Upload the build output (dist/) for deployment
+      - name: Upload build artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  # --------------------
+  # Deploy job
+  # --------------------
+  deploy:
+    needs: build            # Run only if build succeeds
+    runs-on: ubuntu-latest
+
+    # GitHub Pages environment configuration
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      # Deploy uploaded artifact to GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
