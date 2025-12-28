@@ -1,0 +1,4 @@
+// PUBLIC ROUTES
+export const DASHBOARD = "/"
+
+//PRIVATE ROUTES
